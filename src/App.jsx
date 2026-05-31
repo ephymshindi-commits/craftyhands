@@ -13,25 +13,24 @@ import About     from './pages/About';
 import Contact   from './pages/Contact';
 import Wishlist  from './pages/Wishlist';
 import AdminPage from './admin/AdminPage';
-import { useCart }      from './hooks/useCart';
-import { useStore }     from './hooks/useStore';
-import { useWishlist }  from './hooks/useWishlist';
-import { useDarkMode }  from './hooks/useDarkMode';
-import { useReviews }   from './hooks/useReviews';
+import { useCart }     from './hooks/useCart';
+import { useStore }    from './hooks/useStore';
+import { useWishlist } from './hooks/useWishlist';
+import { useDarkMode } from './hooks/useDarkMode';
+import { useReviews }  from './hooks/useReviews';
 
 function AppInner() {
   const showToast = useToast();
   const [dark, toggleDark] = useDarkMode();
   const { cart, addToCart, removeFromCart, total, count, isOpen, setIsOpen } = useCart();
   const {
-    products, heroImg, storyImg,
-    setHeroImg, setStoryImg,
-    updateProduct, addProduct, deleteProduct, setProductImage,
-    resetToDefaults,
+    products, heroImg, storyImg, logoImg,
+    setHeroImg, setStoryImg, setLogoImg,
+    updateProduct, addProduct, deleteProduct, setProductImage, resetToDefaults,
   } = useStore();
   const { wishlistIds, toggleWishlist, isWished } = useWishlist();
-  const { addReview, getReviews, getAvgRating }   = useReviews();
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const { addReview, getReviews }                 = useReviews();
+  const [selectedProduct, setSelectedProduct]     = useState(null);
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
 
@@ -41,9 +40,7 @@ function AppInner() {
     setTimeout(() => setIsOpen(true), 350);
   }, [addToCart, showToast, setIsOpen]);
 
-  const handleOpenProduct = useCallback((product) => {
-    setSelectedProduct(product);
-  }, []);
+  const handleOpenProduct = useCallback((product) => setSelectedProduct(product), []);
 
   const handleToggleWishlist = useCallback((id) => {
     const wasWished = isWished(id);
@@ -60,68 +57,50 @@ function AppInner() {
           wishlistCount={wishlistIds.length}
           dark={dark}
           onToggleDark={toggleDark}
+          logoImg={logoImg}
         />
       )}
 
       <Routes>
         <Route path="/" element={
           <Home
-            products={products}
-            heroImg={heroImg}
-            storyImg={storyImg}
-            onSetHeroImg={setHeroImg}
-            onSetStoryImg={setStoryImg}
+            products={products} heroImg={heroImg} storyImg={storyImg}
+            onSetHeroImg={setHeroImg} onSetStoryImg={setStoryImg}
             onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds} onToggleWishlist={handleToggleWishlist}
           />
         }/>
         <Route path="/shop" element={
           <Shop
-            products={products}
-            onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
+            products={products} onOpenProduct={handleOpenProduct}
+            wishlistIds={wishlistIds} onToggleWishlist={handleToggleWishlist}
           />
         }/>
         <Route path="/wishlist" element={
           <Wishlist
-            products={products}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onOpenProduct={handleOpenProduct}
+            products={products} wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist} onOpenProduct={handleOpenProduct}
           />
         }/>
         <Route path="/about"   element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/admin"   element={
           <AdminPage
-            products={products}
-            heroImg={heroImg}
-            storyImg={storyImg}
-            onUpdateProduct={updateProduct}
-            onAddProduct={addProduct}
-            onDeleteProduct={deleteProduct}
-            onProductImageChange={setProductImage}
-            onSetHeroImg={setHeroImg}
-            onSetStoryImg={setStoryImg}
+            products={products} heroImg={heroImg} storyImg={storyImg} logoImg={logoImg}
+            onUpdateProduct={updateProduct} onAddProduct={addProduct}
+            onDeleteProduct={deleteProduct} onProductImageChange={setProductImage}
+            onSetHeroImg={setHeroImg} onSetStoryImg={setStoryImg} onSetLogoImg={setLogoImg}
             onResetDefaults={resetToDefaults}
           />
         }/>
       </Routes>
 
-      {!isAdmin && <Footer />}
-
       {!isAdmin && (
         <>
-          <CartSidebar
-            cart={cart} total={total}
-            isOpen={isOpen} onClose={() => setIsOpen(false)}
-            onRemove={removeFromCart}
-          />
+          <Footer logoImg={logoImg} />
+          <CartSidebar cart={cart} total={total} isOpen={isOpen} onClose={() => setIsOpen(false)} onRemove={removeFromCart}/>
           <ProductModal
-            product={selectedProduct}
-            onClose={() => setSelectedProduct(null)}
+            product={selectedProduct} onClose={() => setSelectedProduct(null)}
             onAddToCart={handleAddToCart}
             isWished={selectedProduct ? isWished(selectedProduct.id) : false}
             onToggleWishlist={handleToggleWishlist}
@@ -131,16 +110,11 @@ function AppInner() {
           <WhatsAppFAB />
         </>
       )}
-
       <Toast />
     </>
   );
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AppInner />
-    </BrowserRouter>
-  );
+  return <BrowserRouter><AppInner /></BrowserRouter>;
 }

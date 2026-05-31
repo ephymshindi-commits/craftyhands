@@ -7,19 +7,16 @@ import { isCloudinaryConfigured } from '../lib/cloudinary';
 import styles from './AdminDashboard.module.css';
 
 export default function AdminDashboard({
-  products, heroImg, storyImg,
+  products, heroImg, storyImg, logoImg,
   onUpdateProduct, onAddProduct, onDeleteProduct, onProductImageChange,
-  onSetHeroImg, onSetStoryImg, onResetDefaults, onLogout,
+  onSetHeroImg, onSetStoryImg, onSetLogoImg, onResetDefaults, onLogout,
 }) {
-  const [tab,      setTab]    = useState('products');
-  const [showAdd,  setAdd]    = useState(false);
-  const [toast,    setToast]  = useState('');
+  const [tab,     setTab]  = useState('products');
+  const [showAdd, setAdd]  = useState(false);
+  const [toast,   setToast] = useState('');
   const cloudinaryOk = isCloudinaryConfigured();
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
+  function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
   return (
     <div className={styles.shell}>
@@ -29,12 +26,11 @@ export default function AdminDashboard({
           <div className={styles.sideLogo}>Crafty <span>Hands</span></div>
           <div className={styles.sideLabel}>Admin Panel</div>
         </div>
-
         <nav className={styles.sideNav}>
           {[
             { id:'products', icon:'🛍️', label:'Products' },
-            { id:'images',   icon:'🖼️', label:'Site Images' },
-            { id:'info',     icon:'ℹ️',  label:'Help & Info' },
+            { id:'images',   icon:'🖼️', label:'Site Images & Logo' },
+            { id:'info',     icon:'ℹ️',  label:'Help & Setup' },
           ].map(item => (
             <button key={item.id}
               className={`${styles.navBtn} ${tab===item.id ? styles.navActive : ''}`}
@@ -44,11 +40,9 @@ export default function AdminDashboard({
             </button>
           ))}
         </nav>
-
         <div className={styles.sideBottom}>
-          {/* Cloudinary status */}
           <div className={`${styles.cloudStatus} ${cloudinaryOk ? styles.cloudOk : styles.cloudErr}`}>
-            <span>{cloudinaryOk ? '☁️ Cloudinary Connected' : '⚠️ Cloudinary Not Set Up'}</span>
+            {cloudinaryOk ? '☁️ Cloudinary Connected' : '⚠️ Cloudinary Not Set Up'}
           </div>
           <a href="/" target="_blank" className={styles.viewSiteBtn}>🌐 View Live Site</a>
           <button className={styles.logoutBtn} onClick={onLogout}>🔒 Logout</button>
@@ -61,28 +55,26 @@ export default function AdminDashboard({
           <div>
             <h1 className={styles.pageTitle}>
               {tab==='products' && 'Manage Products'}
-              {tab==='images'   && 'Site Images'}
-              {tab==='info'     && 'Help & Info'}
+              {tab==='images'   && 'Site Images & Logo'}
+              {tab==='info'     && 'Help & Setup'}
             </h1>
             <p className={styles.pageSub}>
-              {tab==='products' && `${products.length} products · Changes reflect instantly on the public site`}
-              {tab==='images'   && 'Upload hero and brand story images via Cloudinary'}
-              {tab==='info'     && 'Setup guide and troubleshooting'}
+              {tab==='products' && `${products.length} products · All photos stored on Cloudinary`}
+              {tab==='images'   && 'All images upload directly to Cloudinary — visible to everyone instantly'}
+              {tab==='info'     && 'Cloudinary setup guide and troubleshooting'}
             </p>
           </div>
           {tab==='products' && (
-            <button className={styles.addBtn} onClick={() => setAdd(true)}>
-              + Add Product
-            </button>
+            <button className={styles.addBtn} onClick={() => setAdd(true)}>+ Add Product</button>
           )}
         </div>
 
-        {/* ── CLOUDINARY WARNING ── */}
+        {/* Cloudinary warning */}
         {!cloudinaryOk && (
           <div className={styles.cloudWarning}>
-            <strong>⚠️ Cloudinary not configured.</strong> Image uploads won't work until you add
-            <code> VITE_CLOUDINARY_CLOUD_NAME</code> and <code>VITE_CLOUDINARY_UPLOAD_PRESET</code> to your <code>.env</code> file.
-            See the Help tab for setup steps.
+            <strong>⚠️ Cloudinary not configured.</strong> Image uploads will fail until you add
+            <code> VITE_CLOUDINARY_CLOUD_NAME</code> and <code>VITE_CLOUDINARY_UPLOAD_PRESET</code> to your
+            Vercel environment variables. See the Help tab.
           </div>
         )}
 
@@ -92,56 +84,95 @@ export default function AdminDashboard({
             {products.length === 0 ? (
               <div className={styles.emptyState}>
                 <p>No products yet.</p>
-                <button className={styles.addBtn} onClick={() => setAdd(true)}>+ Add Your First Product</button>
+                <button className={styles.addBtn} onClick={() => setAdd(true)}>+ Add First Product</button>
               </div>
-            ) : (
-              products.map(p => (
-                <ProductEditor
-                  key={p.id}
-                  product={p}
-                  onUpdate={(id, changes) => { onUpdateProduct(id, changes); showToast('Product saved ✓'); }}
-                  onDelete={(id) => { onDeleteProduct(id); showToast('Product deleted'); }}
-                  onImageChange={(id, url) => { onProductImageChange(id, url); showToast(url ? 'Photo uploaded to Cloudinary ✓' : 'Photo removed'); }}
-                />
-              ))
-            )}
+            ) : products.map(p => (
+              <ProductEditor
+                key={p.id} product={p}
+                onUpdate={(id, ch) => { onUpdateProduct(id, ch); showToast('Product saved ✓'); }}
+                onDelete={(id) => { onDeleteProduct(id); showToast('Product deleted'); }}
+                onImageChange={(id, url) => { onProductImageChange(id, url); showToast(url ? '☁️ Photo uploaded to Cloudinary ✓' : 'Photo removed'); }}
+              />
+            ))}
           </div>
         )}
 
-        {/* ── IMAGES TAB ── */}
+        {/* ── IMAGES & LOGO TAB ── */}
         {tab==='images' && (
           <div className={styles.imagesGrid}>
+
+            {/* LOGO */}
+            <div className={styles.imgCard} style={{gridColumn:'1/-1'}}>
+              <div className={styles.imgCardHeader}>
+                <div>
+                  <h3>🏷️ Brand Logo</h3>
+                  <p>
+                    Displayed in the navbar and footer. Use a <strong>transparent PNG</strong> or square image
+                    for best results. Recommended: 200×200px or wider with transparent background.
+                    It will appear neatly beside your brand name.
+                  </p>
+                </div>
+              </div>
+              <div className={styles.logoPreviewRow}>
+                {/* Live preview of how logo looks in navbar */}
+                <div className={styles.logoNavPreview}>
+                  <span className={styles.previewLabel}>Navbar preview</span>
+                  <div className={styles.fakeNav}>
+                    {logoImg
+                      ? <img src={logoImg} alt="Logo" className={styles.previewLogoImg}/>
+                      : <div className={styles.previewNoLogo}>No logo yet</div>
+                    }
+                    <span className={styles.previewBrandText}>Crafty <span>Hands</span></span>
+                  </div>
+                </div>
+                <div className={styles.logoUploaderWrap}>
+                  <ImageUploader
+                    currentImage={logoImg}
+                    onUpload={url => { onSetLogoImg(url); showToast('☁️ Logo uploaded ✓'); }}
+                    onRemove={() => { onSetLogoImg(null); showToast('Logo removed'); }}
+                    folder="craftyhands/branding"
+                    label="Upload Brand Logo"
+                    hint="PNG with transparent background recommended · Max 5MB"
+                    aspectRatio="1/1"
+                    compact={!!logoImg}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* HERO */}
             <div className={styles.imgCard}>
               <div className={styles.imgCardHeader}>
-                <h3>Hero Image</h3>
-                <p>Large banner photo on the homepage (right side). Ideal size: 800×1000px or taller.</p>
+                <h3>🖼️ Hero Image</h3>
+                <p>Main banner photo on the homepage. Tall portrait (3:4) works best.</p>
               </div>
               <div className={styles.imgCardBody}>
                 <ImageUploader
                   currentImage={heroImg}
-                  onUpload={url => { onSetHeroImg(url); showToast('Hero image saved to Cloudinary ✓'); }}
+                  onUpload={url => { onSetHeroImg(url); showToast('☁️ Hero image uploaded ✓'); }}
                   onRemove={() => { onSetHeroImg(null); showToast('Hero image removed'); }}
                   folder="craftyhands/hero"
                   label="Upload Hero Image"
-                  hint="Tall portrait image works best"
+                  hint="Portrait image (3:4 ratio) works best"
                   aspectRatio="3/4"
                 />
               </div>
             </div>
 
+            {/* STORY */}
             <div className={styles.imgCard}>
               <div className={styles.imgCardHeader}>
-                <h3>Brand Story Image</h3>
-                <p>Photo in the "Our Story" section on the homepage. Portrait orientation preferred.</p>
+                <h3>📖 Brand Story Image</h3>
+                <p>Photo in the "Our Story" section. A photo of you or your work is ideal.</p>
               </div>
               <div className={styles.imgCardBody}>
                 <ImageUploader
                   currentImage={storyImg}
-                  onUpload={url => { onSetStoryImg(url); showToast('Story image saved to Cloudinary ✓'); }}
+                  onUpload={url => { onSetStoryImg(url); showToast('☁️ Story image uploaded ✓'); }}
                   onRemove={() => { onSetStoryImg(null); showToast('Story image removed'); }}
                   folder="craftyhands/story"
                   label="Upload Story Image"
-                  hint="Portrait photo of you or your work"
+                  hint="Portrait photo of you or your workspace"
                   aspectRatio="4/5"
                 />
               </div>
@@ -149,23 +180,17 @@ export default function AdminDashboard({
           </div>
         )}
 
-        {/* ── INFO TAB ── */}
+        {/* ── HELP TAB ── */}
         {tab==='info' && (
           <div className={styles.infoTab}>
-
             <div className={styles.infoCard}>
-              <h3>☁️ Cloudinary Setup (Required for Images)</h3>
+              <h3>☁️ Why images appear blank on the live site</h3>
+              <p>If photos show on your PC but not the live site, it means the image was saved locally (to your browser) instead of Cloudinary. The fix:</p>
               <ol className={styles.steps}>
-                <li>Go to <strong>cloudinary.com</strong> and create a free account</li>
-                <li>From your dashboard, copy your <strong>Cloud Name</strong></li>
-                <li>Go to <strong>Settings → Upload → Add upload preset</strong></li>
-                <li>Set preset name: <code>craftyhands_uploads</code></li>
-                <li>Set signing mode: <strong>Unsigned</strong></li>
-                <li>Optionally set folder: <code>craftyhands</code></li>
-                <li>Open your <code>.env</code> file and add:
-                  <pre className={styles.pre}>{`VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name\nVITE_CLOUDINARY_UPLOAD_PRESET=craftyhands_uploads`}</pre>
-                </li>
-                <li>Restart the dev server: <code>npm run dev</code></li>
+                <li>Make sure <code>VITE_CLOUDINARY_CLOUD_NAME</code> is set in Vercel → Settings → Environment Variables</li>
+                <li>Make sure <code>VITE_CLOUDINARY_UPLOAD_PRESET</code> is set to <code>craftyhands_uploads</code></li>
+                <li>Go to Vercel → Deployments → Redeploy after adding the env vars</li>
+                <li>Re-upload your images in the Admin panel — the new uploads will go to Cloudinary and be visible to everyone</li>
               </ol>
               <div className={`${styles.statusBadge} ${cloudinaryOk ? styles.statusOk : styles.statusErr}`}>
                 {cloudinaryOk ? '✅ Cloudinary is configured' : '❌ Cloudinary not yet configured'}
@@ -173,25 +198,25 @@ export default function AdminDashboard({
             </div>
 
             <div className={styles.infoCard}>
-              <h3>🔐 Admin Access</h3>
-              <p>Navigate to <code>/admin</code> — not linked anywhere on the public site.</p>
-              <p>Change your password in the <code>.env</code> file under <code>VITE_ADMIN_PASSWORD</code>.</p>
-            </div>
-
-            <div className={styles.infoCard}>
-              <h3>💾 How Data is Saved</h3>
-              <p>Product details (name, price, description, sizes) → <strong>localStorage</strong> in your browser.</p>
-              <p>Product photos, hero & story images → <strong>Cloudinary</strong> (permanent, any device).</p>
-              <p>The Cloudinary URLs are then saved to localStorage so the site always shows the right images.</p>
+              <h3>☁️ Cloudinary First-Time Setup</h3>
+              <ol className={styles.steps}>
+                <li>Go to <strong>cloudinary.com</strong> → free account</li>
+                <li>Copy your <strong>Cloud Name</strong> from the dashboard</li>
+                <li>Settings → Upload → Add upload preset → name: <code>craftyhands_uploads</code> → Signing: <strong>Unsigned</strong></li>
+                <li>Vercel → your project → Settings → Environment Variables → add:
+                  <pre className={styles.pre}>{`VITE_CLOUDINARY_CLOUD_NAME = your_cloud_name\nVITE_CLOUDINARY_UPLOAD_PRESET = craftyhands_uploads`}</pre>
+                </li>
+                <li>Vercel → Deployments → Redeploy</li>
+                <li>Come back to Admin → re-upload all images</li>
+              </ol>
             </div>
 
             <div className={styles.infoCard}>
               <h3>⚠️ Reset All Data</h3>
-              <p>Deletes all product changes and clears saved image URLs. Photos on Cloudinary are not deleted.</p>
+              <p>Clears all product changes and image URL links. Photos on Cloudinary are NOT deleted.</p>
               <button className={styles.dangerBtn} onClick={() => {
-                if (window.confirm('⚠️ Reset all product data? Photos stay on Cloudinary but links will be lost.')) {
-                  onResetDefaults();
-                  showToast('Reset to defaults ✓');
+                if (window.confirm('Reset all data? Image links will be cleared but Cloudinary photos stay.')) {
+                  onResetDefaults(); showToast('Reset done ✓');
                 }
               }}>Reset All Data</button>
             </div>

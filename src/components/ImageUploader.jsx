@@ -1,16 +1,14 @@
 // src/components/ImageUploader.jsx
-// ─────────────────────────────────────────────────────────────
-//  Reusable image uploader used throughout admin panel.
-//  Uploads to Cloudinary, shows progress, returns URL.
-// ─────────────────────────────────────────────────────────────
+// Uploads file → Cloudinary → returns permanent public URL
+// That URL is saved to localStorage and shown on the live site for ALL users
 import { useState, useRef } from 'react';
 import { uploadToCloudinary, isCloudinaryConfigured } from '../lib/cloudinary';
 import styles from './ImageUploader.module.css';
 
 export default function ImageUploader({
   currentImage,
-  onUpload,          // (cloudinaryUrl: string) => void
-  onRemove,          // () => void
+  onUpload,
+  onRemove,
   folder = 'craftyhands',
   label = 'Upload Photo',
   hint = 'JPG, PNG, WEBP · Max 10MB',
@@ -25,20 +23,11 @@ export default function ImageUploader({
 
   async function handleFile(file) {
     if (!file) return;
-
-    // Validate type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file (JPG, PNG, WEBP).');
-      return;
-    }
-    // Validate size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Image must be under 10MB.');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
+    if (file.size > 10 * 1024 * 1024)   { setError('Image must be under 10MB.');     return; }
 
     if (!isCloudinaryConfigured()) {
-      setError('Cloudinary not configured. Check your .env file (VITE_CLOUDINARY_CLOUD_NAME).');
+      setError('⚠️ Cloudinary not set up. Add VITE_CLOUDINARY_CLOUD_NAME to your .env on Vercel.');
       return;
     }
 
@@ -47,19 +36,17 @@ export default function ImageUploader({
     setProgress(0);
 
     try {
-      const url = await uploadToCloudinary(file, folder, setProgress);
-      onUpload(url);
+      // Upload directly to Cloudinary — returns a permanent public HTTPS URL
+      const cloudUrl = await uploadToCloudinary(file, folder, setProgress);
+      // Pass the Cloudinary URL up — this is what gets saved & shown to all users
+      onUpload(cloudUrl);
     } catch (err) {
-      setError(err.message || 'Upload failed. Please try again.');
+      setError(err.message || 'Upload failed. Check your Cloudinary settings.');
     } finally {
       setUploading(false);
       setProgress(0);
       if (inputRef.current) inputRef.current.value = '';
     }
-  }
-
-  function handleInputChange(e) {
-    handleFile(e.target.files[0]);
   }
 
   function handleDrop(e) {
@@ -68,61 +55,49 @@ export default function ImageUploader({
     handleFile(e.dataTransfer.files[0]);
   }
 
-  function handleDragOver(e) {
-    e.preventDefault();
-    setDragOver(true);
-  }
-
   return (
     <div className={`${styles.wrap} ${compact ? styles.compact : ''}`}>
-      {/* Current image preview */}
+      {/* Preview of current Cloudinary image */}
       {currentImage && (
         <div className={styles.preview} style={{ aspectRatio }}>
           <img src={currentImage} alt="Uploaded" />
           <div className={styles.previewActions}>
-            <button
-              className={styles.changeBtn}
-              onClick={() => inputRef.current?.click()}
-              disabled={uploading}
-            >
+            <button className={styles.changeBtn} onClick={() => inputRef.current?.click()} disabled={uploading}>
               🔄 Change
             </button>
-            <button
-              className={styles.removeBtn}
-              onClick={onRemove}
-              disabled={uploading}
-            >
+            <button className={styles.removeBtn} onClick={onRemove} disabled={uploading}>
               🗑️ Remove
             </button>
           </div>
         </div>
       )}
 
-      {/* Drop zone (shown when no image or compact mode) */}
-      {(!currentImage || compact) && (
+      {/* Drop zone */}
+      {!currentImage && (
         <div
           className={`${styles.dropZone} ${dragOver ? styles.dragOver : ''} ${uploading ? styles.uploading : ''}`}
-          style={{ aspectRatio: currentImage ? undefined : aspectRatio }}
+          style={{ aspectRatio }}
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onClick={() => !uploading && inputRef.current?.click()}
         >
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             style={{ display: 'none' }}
-            onChange={handleInputChange}
+            onChange={e => handleFile(e.target.files[0])}
           />
 
           {uploading ? (
             <div className={styles.progressWrap}>
               <div className={styles.spinner} />
-              <span className={styles.progressLabel}>Uploading… {progress}%</span>
+              <span className={styles.progressLabel}>Uploading to Cloudinary… {progress}%</span>
               <div className={styles.progressBar}>
                 <div className={styles.progressFill} style={{ width: `${progress}%` }} />
               </div>
+              <small className={styles.progressHint}>Do not close this window</small>
             </div>
           ) : (
             <>
@@ -135,15 +110,28 @@ export default function ImageUploader({
               </div>
               <p className={styles.dropLabel}>
                 <span>{label}</span>
-                <small>or drag & drop</small>
+                <small>or drag & drop here</small>
               </p>
               <p className={styles.hint}>{hint}</p>
+              <div className={styles.cloudBadge}>
+                ☁️ Uploads to Cloudinary — visible to all users
+              </div>
             </>
           )}
         </div>
       )}
 
-      {/* Error */}
+      {/* Change button when image exists but compact = true */}
+      {currentImage && compact && (
+        <>
+          <input ref={inputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleFile(e.target.files[0])}/>
+          <button className={styles.changeBtn} onClick={() => inputRef.current?.click()} disabled={uploading}>
+            {uploading ? `Uploading ${progress}%…` : '🔄 Change Photo'}
+          </button>
+        </>
+      )}
+
+      {/* Error message */}
       {error && (
         <div className={styles.error}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -152,16 +140,6 @@ export default function ImageUploader({
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           {error}
-        </div>
-      )}
-
-      {/* Cloudinary badge */}
-      {!uploading && (
-        <div className={styles.cloudBadge}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
-          </svg>
-          Stored on Cloudinary
         </div>
       )}
     </div>

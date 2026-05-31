@@ -1,35 +1,24 @@
 // src/admin/AdminPage.jsx
-// This is the /admin route. It shows the login screen first,
-// then the dashboard after successful authentication.
-// The route is never linked in the public navbar or footer.
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
 
 export default function AdminPage({
-  products, heroImg, storyImg,
+  products, heroImg, storyImg, logoImg,
   onUpdateProduct, onAddProduct, onDeleteProduct, onProductImageChange,
-  onSetHeroImg, onSetStoryImg, onResetDefaults,
+  onSetHeroImg, onSetStoryImg, onSetLogoImg, onResetDefaults,
 }) {
   const { authed, login, logout, error } = useAdminAuth();
 
-  if (!authed) {
-    return <AdminLogin onLogin={login} error={error} />;
-  }
+  if (!authed) return <AdminLogin onLogin={login} error={error} />;
 
   return (
     <AdminDashboard
-      products={products}
-      heroImg={heroImg}
-      storyImg={storyImg}
-      onUpdateProduct={onUpdateProduct}
-      onAddProduct={onAddProduct}
-      onDeleteProduct={onDeleteProduct}
-      onProductImageChange={onProductImageChange}
-      onSetHeroImg={onSetHeroImg}
-      onSetStoryImg={onSetStoryImg}
-      onResetDefaults={onResetDefaults}
-      onLogout={logout}
+      products={products} heroImg={heroImg} storyImg={storyImg} logoImg={logoImg}
+      onUpdateProduct={onUpdateProduct} onAddProduct={onAddProduct}
+      onDeleteProduct={onDeleteProduct} onProductImageChange={onProductImageChange}
+      onSetHeroImg={onSetHeroImg} onSetStoryImg={onSetStoryImg} onSetLogoImg={onSetLogoImg}
+      onResetDefaults={onResetDefaults} onLogout={logout}
     />
   );
 }

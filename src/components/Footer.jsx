@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import config from '../config';
 import styles from './Footer.module.css';
 
-export default function Footer() {
+export default function Footer({ logoImg }) {
   return (
     <footer className={styles.footer}>
       <div className={styles.top}>
         <div className={styles.brand}>
-          <Link to="/" className={styles.logo}>
-            {config.brand.name.split(' ')[0]} <span>{config.brand.name.split(' ')[1]}</span>
+          <Link to="/" className={styles.logoWrap}>
+            {logoImg && <img src={logoImg} alt={config.brand.name} className={styles.footerLogoImg}/>}{config.brand.name.split(" ")[0]} <span>{config.brand.name.split(" ")[1]}</span>
           </Link>
           <p>Handmade crochet fashion crafted with love in Nairobi, Kenya. Each piece is a wearable work of art.</p>
           <div className={styles.socials}>
