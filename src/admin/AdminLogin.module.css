@@ -1,0 +1,109 @@
+/* src/admin/AdminLogin.module.css */
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0a1a;
+  padding: 24px;
+}
+
+.card {
+  background: #1a1028;
+  border: 1px solid rgba(91,45,142,0.4);
+  border-radius: 12px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(91,45,142,0.25);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+}
+.logo span { color: var(--gold); }
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.sub {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.45);
+  font-weight: 300;
+  margin-bottom: 32px;
+}
+
+.form { display: flex; flex-direction: column; gap: 12px; }
+
+.inputWrap {
+  position: relative;
+}
+.inputWrap input {
+  width: 100%;
+  padding: 14px 48px 14px 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.3s;
+  font-family: var(--font-body);
+}
+.inputWrap input:focus { border-color: var(--purple-light); }
+.inputWrap input::placeholder { color: rgba(255,255,255,0.3); }
+
+.eyeBtn {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,0.4);
+  transition: color 0.2s;
+}
+.eyeBtn:hover { color: rgba(255,255,255,0.8); }
+
+.error {
+  font-size: 0.8rem;
+  color: #f87272;
+  text-align: left;
+  padding: 0 4px;
+}
+
+.loginBtn {
+  margin-top: 4px;
+  padding: 15px;
+  background: var(--purple);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  transition: background 0.3s, transform 0.2s;
+}
+.loginBtn:hover { background: var(--purple-deep); transform: translateY(-1px); }
+
+.hint {
+  margin-top: 32px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.25);
+  line-height: 1.7;
+}
+.hint code {
+  background: rgba(255,255,255,0.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--gold);
+}

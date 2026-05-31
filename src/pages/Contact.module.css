@@ -1,0 +1,130 @@
+/* src/pages/Contact.module.css */
+.pageHero {
+  background: var(--purple-deep);
+  padding: 130px 80px 72px;
+}
+
+.section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  padding: 100px 80px;
+  background: var(--gray-soft);
+  align-items: start;
+}
+
+.formWrap {}
+
+.form { display: flex; flex-direction: column; gap: 0; }
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.group label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gray-text);
+  margin-bottom: 8px;
+}
+.group input,
+.group textarea,
+.group select {
+  padding: 14px 18px;
+  border: 1.5px solid var(--gray-mid);
+  border-radius: 2px;
+  background: white;
+  font-size: 0.9rem;
+  color: var(--black);
+  outline: none;
+  transition: border-color 0.3s;
+  width: 100%;
+}
+.group input:focus,
+.group textarea:focus,
+.group select:focus {
+  border-color: var(--purple);
+}
+.group textarea {
+  resize: vertical;
+  min-height: 128px;
+  line-height: 1.6;
+}
+
+.info {}
+.infoDesc {
+  font-size: 0.92rem;
+  color: var(--gray-text);
+  line-height: 1.8;
+  font-weight: 300;
+  margin-bottom: 40px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+.detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.detailIcon {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--purple-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--purple);
+  flex-shrink: 0;
+}
+.detail div strong {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray-text);
+  margin-bottom: 2px;
+}
+.detail div a,
+.detail div span {
+  font-size: 0.92rem;
+  color: var(--black);
+  font-weight: 400;
+}
+.detail div a:hover { color: var(--purple); }
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--purple-pale);
+  border-radius: 4px;
+  border-left: 3px solid var(--purple);
+}
+.note p {
+  font-size: 0.84rem;
+  color: var(--purple-deep);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .pageHero { padding: 120px 24px 56px; }
+  .section { grid-template-columns: 1fr; padding: 64px 24px; gap: 56px; }
+  .row { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,94 @@
+/* src/components/Navbar.module.css */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: var(--nav-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px;
+  background: rgba(250,250,248,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gray-mid);
+  transition: box-shadow 0.35s, background 0.35s;
+}
+.nav.scrolled { box-shadow: 0 2px 32px rgba(91,45,142,0.09); }
+:global(.dark) .nav { background: rgba(15,10,26,0.94); border-color: rgba(255,255,255,0.07); }
+
+.logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; letter-spacing: 0.02em; color: var(--purple-deep); }
+.logo span { color: var(--gold); }
+:global(.dark) .logo { color: white; }
+
+.links { display: flex; gap: 36px; list-style: none; }
+.links a {
+  font-size: 0.78rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gray-text); transition: color 0.3s; position: relative;
+}
+.links a::after {
+  content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
+  height: 1px; background: var(--purple);
+  transform: scaleX(0); transform-origin: left; transition: transform 0.35s;
+}
+.links a:hover, .links a.active { color: var(--purple); }
+.links a:hover::after, .links a.active::after { transform: scaleX(1); }
+:global(.dark) .links a { color: rgba(255,255,255,0.55); }
+:global(.dark) .links a:hover, :global(.dark) .links a.active { color: white; }
+
+/* Search bar overlay */
+.searchBar {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--nav-h);
+  background: var(--white); z-index: 10;
+  display: flex; align-items: center;
+  padding: 0 48px; gap: 12px;
+  border-bottom: 2px solid var(--purple);
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from { opacity: 0; } to { opacity: 1; } }
+:global(.dark) .searchBar { background: #0f0a1a; }
+.searchBar svg { color: var(--gray-text); flex-shrink: 0; }
+.searchBar input {
+  flex: 1; border: none; outline: none; background: none;
+  font-size: 1rem; font-family: var(--font-body); color: var(--black);
+}
+:global(.dark) .searchBar input { color: white; }
+.closeSearch { color: var(--gray-text); font-size: 1rem; padding: 4px 8px; }
+.closeSearch:hover { color: var(--purple); }
+
+/* Icon buttons */
+.actions { display: flex; gap: 8px; align-items: center; }
+.iconBtn {
+  position: relative; width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid transparent; border-radius: 50%;
+  color: var(--gray-text);
+  transition: border-color 0.25s, background 0.25s, color 0.25s;
+}
+.iconBtn:hover { border-color: var(--purple); background: var(--purple-pale); color: var(--purple); }
+:global(.dark) .iconBtn { color: rgba(255,255,255,0.6); }
+:global(.dark) .iconBtn:hover { background: rgba(91,45,142,0.2); border-color: var(--purple-light); color: white; }
+.iconBtn.active { border-color: var(--purple); background: var(--purple-pale); }
+
+.badge {
+  position: absolute; top: -4px; right: -4px;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--purple); color: white;
+  font-size: 0.6rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.burger { display: none; flex-direction: column; gap: 5px; padding: 6px; }
+.burger span { display: block; width: 22px; height: 1.5px; background: var(--black); transition: all 0.3s; }
+:global(.dark) .burger span { background: white; }
+
+@media (max-width: 768px) {
+  .nav { padding: 0 20px; }
+  .burger { display: flex; }
+  .links {
+    position: fixed; top: var(--nav-h); left: 0; right: 0;
+    background: var(--white); flex-direction: column; gap: 0;
+    padding: 12px 0; border-bottom: 1px solid var(--gray-mid);
+    transform: translateY(-110%); transition: transform 0.35s; z-index: 99;
+  }
+  :global(.dark) .links { background: #0f0a1a; border-color: rgba(255,255,255,0.08); }
+  .links.open { transform: translateY(0); }
+  .links a { display: block; padding: 13px 24px; }
+  .searchBar { padding: 0 20px; }
+  .iconBtn { width: 34px; height: 34px; }
+}
