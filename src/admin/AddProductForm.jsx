@@ -1,6 +1,7 @@
 // src/admin/AddProductForm.jsx
 import { useState } from 'react';
 import ImageUploader from '../components/ImageUploader';
+import { supabase } from '../lib/supabase';
 import styles from './AddProductForm.module.css';
 
 const CATEGORIES    = ['Sets', 'Tops', 'Dresses', 'Accessories'];
@@ -19,8 +20,11 @@ const EMPTY = {
 
 export default function AddProductForm({ onAdd, onClose }) {
   const [form, setForm] = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
 
-  function handleField(field, value) { setForm(f => ({...f, [field]:value})); }
+  function handleField(field, value) {
+    setForm(f => ({ ...f, [field]: value }));
+  }
 
   function toggleSize(size) {
     setForm(f => ({
@@ -34,28 +38,61 @@ export default function AddProductForm({ onAdd, onClose }) {
   function toggleColor(color) {
     setForm(f => ({
       ...f,
-      colors: (f.colors||[]).includes(color)
+      colors: f.colors.includes(color)
         ? f.colors.filter(c => c !== color)
-        : [...(f.colors||[]), color],
+        : [...f.colors, color],
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.name || !form.price || form.sizes.length === 0) return;
-    onAdd({
-      name:     form.name.trim(),
-      category: form.category,
-      price:    Number(form.price),
-      oldPrice: form.oldPrice ? Number(form.oldPrice) : null,
-      badge:    form.badge || null,
-      desc:     form.desc.trim(),
-      sizes:    form.sizes,
-      colors:   form.colors,
-      imgSrc:   form.imgSrc,
-      inStock:  form.inStock,
-    });
-    onClose();
+
+    if (!form.name || !form.price || !form.imgSrc) {
+      alert("Please fill all required fields + upload image");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([
+          {
+            name: form.name.trim(),
+            category: form.category,
+            price: Number(form.price),
+            old_price: form.oldPrice ? Number(form.oldPrice) : null,
+            badge: form.badge || null,
+            description: form.desc.trim(),
+            sizes: form.sizes,
+            colors: form.colors,
+            image_url: form.imgSrc, // 🔥 THIS is Cloudinary URL
+            in_stock: form.inStock,
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error(error);
+        alert("Error saving product");
+        return;
+      }
+
+      // update UI (optional but good)
+      onAdd(data[0]);
+
+      alert("✅ Product saved successfully!");
+
+      setForm(EMPTY);
+      onClose();
+
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -67,94 +104,136 @@ export default function AddProductForm({ onAdd, onClose }) {
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Cloudinary image upload */}
+
+          {/* IMAGE */}
           <div className={styles.group}>
-            <label>Product Photo (uploaded to Cloudinary)</label>
+            <label>Product Photo</label>
             <ImageUploader
               currentImage={form.imgSrc}
-              onUpload={url => setForm(f => ({...f, imgSrc: url}))}
-              onRemove={() => setForm(f => ({...f, imgSrc: null}))}
+              onUpload={url => setForm(f => ({ ...f, imgSrc: url }))}
+              onRemove={() => setForm(f => ({ ...f, imgSrc: null }))}
               folder="craftyhands/products"
-              label="Upload Product Photo"
-              hint="JPG, PNG, WEBP · Max 10MB"
-              aspectRatio="3/4"
             />
           </div>
 
+          {/* NAME + CATEGORY */}
           <div className={styles.row}>
             <div className={styles.group}>
               <label>Product Name *</label>
-              <input value={form.name} onChange={e => handleField('name', e.target.value)} placeholder="e.g. The Royale Set" required/>
+              <input
+                value={form.name}
+                onChange={e => handleField('name', e.target.value)}
+                required
+              />
             </div>
+
             <div className={styles.group}>
               <label>Category *</label>
-              <select value={form.category} onChange={e => handleField('category', e.target.value)}>
+              <select
+                value={form.category}
+                onChange={e => handleField('category', e.target.value)}
+              >
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>
 
+          {/* PRICE */}
           <div className={styles.row}>
             <div className={styles.group}>
-              <label>Price (KSh) *</label>
-              <input type="number" value={form.price} onChange={e => handleField('price', e.target.value)} placeholder="3500" min="0" required/>
+              <label>Price *</label>
+              <input
+                type="number"
+                value={form.price}
+                onChange={e => handleField('price', e.target.value)}
+                required
+              />
             </div>
+
             <div className={styles.group}>
-              <label>Old Price — optional</label>
-              <input type="number" value={form.oldPrice} onChange={e => handleField('oldPrice', e.target.value)} placeholder="Leave blank" min="0"/>
+              <label>Old Price</label>
+              <input
+                type="number"
+                value={form.oldPrice}
+                onChange={e => handleField('oldPrice', e.target.value)}
+              />
             </div>
           </div>
 
+          {/* BADGE + STOCK */}
           <div className={styles.row}>
             <div className={styles.group}>
               <label>Badge</label>
-              <select value={form.badge} onChange={e => handleField('badge', e.target.value)}>
-                {BADGE_OPTIONS.map(b => <option key={b} value={b}>{b || '— None —'}</option>)}
+              <select
+                value={form.badge}
+                onChange={e => handleField('badge', e.target.value)}
+              >
+                {BADGE_OPTIONS.map(b => (
+                  <option key={b} value={b}>{b || 'None'}</option>
+                ))}
               </select>
             </div>
+
             <div className={styles.group}>
-              <label>Stock Status</label>
-              <select value={form.inStock ? 'in' : 'out'} onChange={e => handleField('inStock', e.target.value === 'in')}>
-                <option value="in">✅ In Stock</option>
-                <option value="out">❌ Out of Stock</option>
+              <label>Stock</label>
+              <select
+                value={form.inStock ? 'in' : 'out'}
+                onChange={e => handleField('inStock', e.target.value === 'in')}
+              >
+                <option value="in">In Stock</option>
+                <option value="out">Out of Stock</option>
               </select>
             </div>
           </div>
 
+          {/* DESC */}
           <div className={styles.group}>
             <label>Description</label>
-            <textarea value={form.desc} onChange={e => handleField('desc', e.target.value)} rows={3} placeholder="Describe the product, materials, fit…"/>
+            <textarea
+              value={form.desc}
+              onChange={e => handleField('desc', e.target.value)}
+            />
           </div>
 
+          {/* SIZES */}
           <div className={styles.group}>
-            <label>Available Sizes *</label>
+            <label>Sizes *</label>
             <div className={styles.chipGrid}>
               {ALL_SIZES.map(s => (
-                <button key={s} type="button"
-                  className={`${styles.chip} ${form.sizes.includes(s) ? styles.chipActive : ''}`}
+                <button
+                  key={s}
+                  type="button"
                   onClick={() => toggleSize(s)}
-                >{s}</button>
+                >
+                  {s}
+                </button>
               ))}
             </div>
           </div>
 
+          {/* COLORS */}
           <div className={styles.group}>
-            <label>Color Variants</label>
+            <label>Colors</label>
             <div className={styles.colorRow}>
               {COMMON_COLORS.map(c => (
-                <button key={c} type="button"
-                  className={`${styles.colorSwatch} ${form.colors.includes(c) ? styles.colorSwatchActive : ''}`}
-                  style={{background:c, border:`2px solid ${form.colors.includes(c) ? '#7B4DB5' : 'rgba(255,255,255,0.15)'}`}}
-                  onClick={() => toggleColor(c)} title={c}
+                <button
+                  key={c}
+                  type="button"
+                  style={{ background: c }}
+                  onClick={() => toggleColor(c)}
                 />
               ))}
             </div>
           </div>
 
+          {/* ACTIONS */}
           <div className={styles.actions}>
-            <button type="submit" className={styles.submitBtn}>✅ Add Product</button>
-            <button type="button" className={styles.cancelBtn} onClick={onClose}>Cancel</button>
+            <button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Add Product'}
+            </button>
+            <button type="button" onClick={onClose}>Cancel</button>
           </div>
+
         </form>
       </div>
     </div>
