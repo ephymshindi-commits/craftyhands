@@ -1,249 +1,159 @@
-// src/App.jsx
-import { useState, useCallback, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-
-import Navbar       from './components/Navbar';
-import Footer       from './components/Footer';
-import CartSidebar  from './components/CartSidebar';
-import ProductModal from './components/ProductModal';
-import Toast, { useToast } from './components/Toast';
-import WhatsAppFAB  from './components/WhatsAppFAB';
-
-import Home     from './pages/Home';
-import Shop     from './pages/Shop';
-import About    from './pages/About';
-import Contact  from './pages/Contact';
-import Wishlist from './pages/Wishlist';
-import AdminPage from './admin/AdminPage';
-
-import { useCart }     from './hooks/useCart';
-import { useWishlist } from './hooks/useWishlist';
-import { useDarkMode } from './hooks/useDarkMode';
-import { useReviews }  from './hooks/useReviews';
-
-import { supabase } from './lib/supabase';
-
-// ── helpers ──────────────────────────────────────────────────
-// Converts array of {key, value} rows → plain object
-// e.g. [{key:'hero_img', value:'https://...'}] → {hero_img:'https://...'}
-function rowsToMap(rows) {
-  return Object.fromEntries((rows || []).map(r => [r.key, r.value]));
-}
-
+// src/lib/supabase.js
 // ─────────────────────────────────────────────────────────────
-function AppInner() {
-  const showToast = useToast();
-  const [dark, toggleDark] = useDarkMode();
+//  Supabase client — free database for all site data.
+//  Products, images, logo, hero — all saved here.
+//  Every visitor on every device sees the same data.
+//
+//  SETUP (5 minutes, completely free):
+//  1. Go to supabase.com → New project (free)
+//  2. After project loads → SQL Editor → paste the schema below → Run
+//  3. Go to Project Settings → API → copy URL and anon key
+//  4. Add to Vercel environment variables:
+//       VITE_SUPABASE_URL  = https://xxxx.supabase.co
+//       VITE_SUPABASE_ANON_KEY = your-anon-key
+//
+//  SQL SCHEMA (run this in Supabase SQL Editor):
+// ─────────────────────────────────────────────────────────────
+/*
+-- Products table
+create table if not exists products (
+  id bigint primary key,
+  name text not null,
+  category text not null,
+  price numeric not null,
+  old_price numeric,
+  badge text,
+  description text,
+  sizes text[],
+  colors text[],
+  img_src text,
+  in_stock boolean default true,
+  created_at timestamptz default now()
+);
 
-  const { cart, addToCart, removeFromCart, total, count, isOpen, setIsOpen } = useCart();
-  const { wishlistIds, toggleWishlist, isWished } = useWishlist();
-  const { addReview, getReviews } = useReviews();
+-- Site settings (hero, story, logo images)
+create table if not exists site_settings (
+  key text primary key,
+  value text
+);
 
-  const [products, setProducts] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+-- Enable public read access (anyone can view products)
+alter table products enable row level security;
+create policy "Public read" on products for select using (true);
+create policy "Public write" on products for all using (true);
 
-  // site settings — keys: hero_img, story_img, logo_img
-  const [site, setSite] = useState({ hero_img: '', story_img: '', logo_img: '' });
+alter table site_settings enable row level security;
+create policy "Public read" on site_settings for select using (true);
+create policy "Public write" on site_settings for all using (true);
 
-  const { pathname } = useLocation();
-  const isAdmin = pathname.startsWith('/admin');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+-- Insert default products
+insert into products (id, name, category, price, old_price, badge, description, sizes, in_stock) values
+(1, 'The Royale Set', 'Sets', 3500, 4200, 'Bestseller', 'A stunning crochet crop top and matching high-waist pants set. Body-fit silhouette with premium yarn. Available in custom colors on request.', ARRAY['XS','S','M','L','XL'], true),
+(2, 'Amara Crop Top', 'Tops', 1800, null, 'New', 'Elegant fitted crochet crop top with intricate open-work detailing. Perfect styled with high-waist bottoms or layered looks.', ARRAY['XS','S','M','L'], true),
+(3, 'Empress Dress', 'Dresses', 4500, 5500, 'Limited', 'Floor-length crochet maxi dress with a bold feminine silhouette. Made to order — your measurements, your dream dress.', ARRAY['S','M','L','XL','Custom'], true),
+(4, 'Sunset Co-ord', 'Sets', 3200, null, null, 'Warm-toned crochet matching set featuring a halter top and wide-leg pants. Turn heads at any gathering.', ARRAY['XS','S','M','L','XL'], true),
+(5, 'Woven Headband', 'Accessories', 550, null, null, 'Handcrafted crochet headband — the perfect finishing touch to any outfit. Available in multiple colors.', ARRAY['One Size'], true),
+(6, 'Zuri Mini Dress', 'Dresses', 2800, 3200, 'Sale', 'Bodycon crochet mini dress with thigh-high slit detail. Bold, confident, undeniably feminine.', ARRAY['XS','S','M','L'], true)
+on conflict (id) do nothing;
+*/
 
-  // ── Fetch products from Supabase ────────────────────────────
-  async function loadProducts() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('id', { ascending: true });
+import { createClient } from '@supabase/supabase-js';
 
-    if (error) {
-      console.error('Product fetch error:', error.message);
-    } else {
-      setProducts((data || []).map(p => ({
-        id:       p.id,
-        name:     p.name,
-        category: p.category,
-        price:    p.price,
-        oldPrice: p.old_price,
-        badge:    p.badge,
-        desc:     p.description,
-        sizes:    p.sizes   || [],
-        colors:   p.colors  || [],
-        imgSrc:   p.img_src || p.image_url || null,  // support both column names
-        inStock:  p.in_stock !== false,
-      })));
-    }
-    setLoading(false);
-  }
+const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  // ── Fetch site settings (key/value rows) ────────────────────
-  async function loadSettings() {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('key, value');   // NO .single() — fetches all rows
+export const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
-    if (error) {
-      console.error('Settings fetch error:', error.message);
-      return;
-    }
-
-    // Convert [{key:'hero_img', value:'...'}, ...] → {hero_img:'...'}
-    setSite(rowsToMap(data));
-  }
-
-  // ── On mount: load data + subscribe to real-time ────────────
-  useEffect(() => {
-    loadProducts();
-    loadSettings();
-
-    // Real-time: products table
-    const productChannel = supabase
-      .channel('products-realtime')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => loadProducts()
-      )
-      .subscribe();
-
-    // Real-time: site_settings table
-    // Each change is a single row {key, value} — merge it into state
-    const settingsChannel = supabase
-      .channel('settings-realtime')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'site_settings' },
-        (payload) => {
-          // payload.new = { key: 'hero_img', value: 'https://...' }
-          if (payload.new?.key) {
-            setSite(prev => ({ ...prev, [payload.new.key]: payload.new.value }));
-          } else {
-            // fallback: reload all settings
-            loadSettings();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(productChannel);
-      supabase.removeChannel(settingsChannel);
-    };
-  }, []);
-
-  // ── Handlers ────────────────────────────────────────────────
-  const handleAddToCart = useCallback((product, size) => {
-    addToCart(product, size);
-    showToast?.(`${product.name} added to cart ✓`);
-    setTimeout(() => setIsOpen(true), 300);
-  }, [addToCart, showToast, setIsOpen]);
-
-  const handleOpenProduct    = useCallback((p) => setSelectedProduct(p), []);
-  const handleToggleWishlist = useCallback((id) => {
-    const wasWished = isWished(id);
-    toggleWishlist(id);
-    showToast?.(wasWished ? 'Removed from wishlist' : 'Saved to wishlist ♥');
-  }, [toggleWishlist, isWished, showToast]);
-
-  // ── Loading screen ──────────────────────────────────────────
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', flexDirection: 'column', gap: 16,
-        background: '#0f0a1a', color: 'white', fontFamily: 'Jost, sans-serif',
-      }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: '50%',
-          border: '2px solid rgba(91,45,142,0.3)',
-          borderTopColor: '#7B4DB5',
-          animation: 'spin 0.8s linear infinite',
-        }}/>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <p style={{ fontSize: '0.85rem', opacity: 0.5, letterSpacing: '0.1em' }}>
-          Loading Crafty Hands…
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {!isAdmin && (
-        <Navbar
-          cartCount={count}
-          onCartOpen={() => setIsOpen(true)}
-          wishlistCount={wishlistIds.length}
-          dark={dark}
-          onToggleDark={toggleDark}
-          logoImg={site.logo_img}
-        />
-      )}
-
-      <Routes>
-        <Route path="/" element={
-          <Home
-            products={products}
-            heroImg={site.hero_img}
-            storyImg={site.story_img}
-            onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        }/>
-        <Route path="/shop" element={
-          <Shop
-            products={products}
-            onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        }/>
-        <Route path="/wishlist" element={
-          <Wishlist
-            products={products}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onOpenProduct={handleOpenProduct}
-          />
-        }/>
-        <Route path="/about"   element={<About storyImg={site.story_img} />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/admin"   element={
-          <AdminPage
-            products={products}
-            onRefresh={loadProducts}
-            site={site}
-            onSiteChange={(key, value) =>
-              setSite(prev => ({ ...prev, [key]: value }))
-            }
-          />
-        }/>
-      </Routes>
-
-      {!isAdmin && (
-        <>
-          <Footer logoImg={site.logo_img} />
-          <CartSidebar
-            cart={cart} total={total} isOpen={isOpen}
-            onClose={() => setIsOpen(false)} onRemove={removeFromCart}
-          />
-          <ProductModal
-            product={selectedProduct}
-            onClose={() => setSelectedProduct(null)}
-            onAddToCart={handleAddToCart}
-            isWished={selectedProduct ? isWished(selectedProduct.id) : false}
-            onToggleWishlist={handleToggleWishlist}
-            reviews={selectedProduct ? getReviews(selectedProduct.id) : []}
-            onAddReview={addReview}
-          />
-          <WhatsAppFAB />
-        </>
-      )}
-      <Toast />
-    </>
-  );
+export function isSupabaseConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
-export default function App() {
-  return <BrowserRouter><AppInner /></BrowserRouter>;
+// ── PRODUCTS ─────────────────────────────────────────────────
+
+export async function fetchProducts() {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('id');
+  if (error) { console.error('fetchProducts:', error); return null; }
+  return data.map(dbToProduct);
+}
+
+export async function upsertProduct(product) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('products')
+    .upsert(productToDb(product), { onConflict: 'id' });
+  if (error) console.error('upsertProduct:', error);
+}
+
+export async function deleteProductDb(id) {
+  if (!supabase) return;
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) console.error('deleteProduct:', error);
+}
+
+// ── SITE SETTINGS ─────────────────────────────────────────────
+
+export async function fetchSetting(key) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', key)
+    .single();
+  if (error) return null;
+  return data?.value || null;
+}
+
+export async function saveSetting(key, value) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('site_settings')
+    .upsert({ key, value }, { onConflict: 'key' });
+  if (error) console.error('saveSetting:', error);
+}
+
+export async function fetchAllSettings() {
+  if (!supabase) return {};
+  const { data, error } = await supabase.from('site_settings').select('*');
+  if (error) return {};
+  return Object.fromEntries((data || []).map(r => [r.key, r.value]));
+}
+
+// ── MAPPERS ───────────────────────────────────────────────────
+
+function dbToProduct(row) {
+  return {
+    id:       row.id,
+    name:     row.name,
+    category: row.category,
+    price:    row.price,
+    oldPrice: row.old_price,
+    badge:    row.badge,
+    desc:     row.description,
+    sizes:    row.sizes || [],
+    colors:   row.colors || [],
+    imgSrc:   row.img_src,
+    inStock:  row.in_stock !== false,
+  };
+}
+
+function productToDb(p) {
+  return {
+    id:          p.id,
+    name:        p.name,
+    category:    p.category,
+    price:       p.price,
+    old_price:   p.oldPrice || null,
+    badge:       p.badge || null,
+    description: p.desc,
+    sizes:       p.sizes || [],
+    colors:      p.colors || [],
+    img_src:     p.imgSrc || null,
+    in_stock:    p.inStock !== false,
+  };
 }
