@@ -48,16 +48,18 @@ function AppInner() {
   const [loading, setLoading] = useState(true);
 
   // ----------------------------
-  // GLOBAL SITE IMAGES (🔥 FIX FOR u() ERROR)
+  // REAL-TIME SITE SETTINGS (🔥 FIX)
   // ----------------------------
-  const [logoImg, setLogoImg] = useState('');
-  const [heroImg, setHeroImg] = useState('');
-  const [storyImg, setStoryImg] = useState('');
-
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [site, setSite] = useState({
+    logo_url: '',
+    hero_url: '',
+    story_url: ''
+  });
 
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // ----------------------------
   // FETCH PRODUCTS
@@ -94,12 +96,47 @@ function AppInner() {
     setLoading(false);
   }
 
+  // ----------------------------
+  // FETCH + REALTIME SITE SETTINGS
+  // ----------------------------
+  async function fetchSite() {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('*')
+      .single();
+
+    if (data) {
+      setSite(data);
+    }
+  }
+
   useEffect(() => {
     fetchProducts();
+    fetchSite();
+
+    // REALTIME SUBSCRIPTION 🔥
+    const channel = supabase
+      .channel('site-settings-live')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_settings'
+        },
+        (payload) => {
+          setSite(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // ----------------------------
-  // REFRESH AFTER ADMIN ACTIONS
+  // REFRESH PRODUCTS AFTER ADMIN
   // ----------------------------
   const handleAddProduct = async () => {
     await fetchProducts();
@@ -131,14 +168,10 @@ function AppInner() {
   }, [toggleWishlist, isWished, showToast]);
 
   // ----------------------------
-  // LOADING STATE
+  // LOADING
   // ----------------------------
   if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        Loading products...
-      </div>
-    );
+    return <div style={{ padding: 40 }}>Loading products...</div>;
   }
 
   return (
@@ -151,7 +184,7 @@ function AppInner() {
           wishlistCount={wishlistIds.length}
           dark={dark}
           onToggleDark={toggleDark}
-          logoImg={logoImg}
+          logoImg={site.logo_url}
         />
       )}
 
@@ -165,6 +198,7 @@ function AppInner() {
               onOpenProduct={handleOpenProduct}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
+              heroImg={site.hero_url}
             />
           }
         />
@@ -193,7 +227,7 @@ function AppInner() {
           }
         />
 
-        <Route path="/about" element={<About />} />
+        <Route path="/about" element={<About storyImg={site.story_url} />} />
         <Route path="/contact" element={<Contact />} />
 
         {/* ADMIN */}
@@ -204,14 +238,7 @@ function AppInner() {
               products={products}
               onAddProduct={handleAddProduct}
 
-              // 🔥 FIX: image state passed correctly
-              logoImg={logoImg}
-              heroImg={heroImg}
-              storyImg={storyImg}
-
-              onSetLogoImg={setLogoImg}
-              onSetHeroImg={setHeroImg}
-              onSetStoryImg={setStoryImg}
+              site={site}
             />
           }
         />
@@ -220,7 +247,7 @@ function AppInner() {
       {/* FOOTER + UI */}
       {!isAdmin && (
         <>
-          <Footer logoImg={logoImg} />
+          <Footer logoImg={site.logo_url} />
 
           <CartSidebar
             cart={cart}
