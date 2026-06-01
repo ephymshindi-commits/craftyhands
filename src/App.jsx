@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartSidebar from './components/CartSidebar';
@@ -13,6 +14,7 @@ import Shop from './pages/Shop';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Wishlist from './pages/Wishlist';
+
 import AdminPage from './admin/AdminPage';
 
 import { useCart } from './hooks/useCart';
@@ -25,18 +27,41 @@ import { supabase } from './lib/supabase';
 function AppInner() {
   const showToast = useToast();
   const [dark, toggleDark] = useDarkMode();
-  const { cart, addToCart, removeFromCart, total, count, isOpen, setIsOpen } = useCart();
+
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    total,
+    count,
+    isOpen,
+    setIsOpen
+  } = useCart();
+
   const { wishlistIds, toggleWishlist, isWished } = useWishlist();
   const { addReview, getReviews } = useReviews();
 
-  const [products, setProducts] = useState([]); // 🔥 FROM SUPABASE
+  // ----------------------------
+  // PRODUCTS
+  // ----------------------------
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ----------------------------
+  // GLOBAL SITE IMAGES (🔥 FIX FOR u() ERROR)
+  // ----------------------------
+  const [logoImg, setLogoImg] = useState('');
+  const [heroImg, setHeroImg] = useState('');
+  const [storyImg, setStoryImg] = useState('');
+
   const [selectedProduct, setSelectedProduct] = useState(null);
+
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
 
-  // ✅ FETCH PRODUCTS FROM SUPABASE
+  // ----------------------------
+  // FETCH PRODUCTS
+  // ----------------------------
   async function fetchProducts() {
     setLoading(true);
 
@@ -46,12 +71,12 @@ function AppInner() {
       .order('id', { ascending: false });
 
     if (error) {
-      console.error(error);
+      console.error('Product fetch error:', error);
+      setLoading(false);
       return;
     }
 
-    // map DB → frontend format
-    const formatted = data.map(p => ({
+    const formatted = (data || []).map(p => ({
       id: p.id,
       name: p.name,
       category: p.category,
@@ -73,33 +98,52 @@ function AppInner() {
     fetchProducts();
   }, []);
 
-  // ✅ ADD PRODUCT (after admin adds)
+  // ----------------------------
+  // REFRESH AFTER ADMIN ACTIONS
+  // ----------------------------
   const handleAddProduct = async () => {
-    await fetchProducts(); // refresh from DB
+    await fetchProducts();
   };
 
+  // ----------------------------
+  // CART
+  // ----------------------------
   const handleAddToCart = useCallback((product, size) => {
     addToCart(product, size);
     showToast?.(`${product.name} added to cart ✓`);
-    setTimeout(() => setIsOpen(true), 350);
+    setTimeout(() => setIsOpen(true), 300);
   }, [addToCart, showToast, setIsOpen]);
 
+  // ----------------------------
+  // PRODUCT MODAL
+  // ----------------------------
   const handleOpenProduct = useCallback((product) => {
     setSelectedProduct(product);
   }, []);
 
+  // ----------------------------
+  // WISHLIST
+  // ----------------------------
   const handleToggleWishlist = useCallback((id) => {
     const wasWished = isWished(id);
     toggleWishlist(id);
     showToast?.(wasWished ? 'Removed from wishlist' : 'Saved to wishlist ♥');
   }, [toggleWishlist, isWished, showToast]);
 
+  // ----------------------------
+  // LOADING STATE
+  // ----------------------------
   if (loading) {
-    return <div style={{ padding: 40 }}>Loading products...</div>;
+    return (
+      <div style={{ padding: 40 }}>
+        Loading products...
+      </div>
+    );
   }
 
   return (
     <>
+      {/* NAVBAR */}
       {!isAdmin && (
         <Navbar
           cartCount={count}
@@ -107,51 +151,77 @@ function AppInner() {
           wishlistCount={wishlistIds.length}
           dark={dark}
           onToggleDark={toggleDark}
+          logoImg={logoImg}
         />
       )}
 
+      {/* ROUTES */}
       <Routes>
-        <Route path="/" element={
-          <Home
-            products={products}
-            onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        }/>
+        <Route
+          path="/"
+          element={
+            <Home
+              products={products}
+              onOpenProduct={handleOpenProduct}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+            />
+          }
+        />
 
-        <Route path="/shop" element={
-          <Shop
-            products={products}
-            onOpenProduct={handleOpenProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        }/>
+        <Route
+          path="/shop"
+          element={
+            <Shop
+              products={products}
+              onOpenProduct={handleOpenProduct}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+            />
+          }
+        />
 
-        <Route path="/wishlist" element={
-          <Wishlist
-            products={products}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onOpenProduct={handleOpenProduct}
-          />
-        }/>
+        <Route
+          path="/wishlist"
+          element={
+            <Wishlist
+              products={products}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              onOpenProduct={handleOpenProduct}
+            />
+          }
+        />
 
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
 
-        <Route path="/admin" element={
-          <AdminPage
-            products={products}
-            onAddProduct={handleAddProduct} // 🔥 important
-          />
-        }/>
+        {/* ADMIN */}
+        <Route
+          path="/admin"
+          element={
+            <AdminPage
+              products={products}
+              onAddProduct={handleAddProduct}
+
+              // 🔥 FIX: image state passed correctly
+              logoImg={logoImg}
+              heroImg={heroImg}
+              storyImg={storyImg}
+
+              onSetLogoImg={setLogoImg}
+              onSetHeroImg={setHeroImg}
+              onSetStoryImg={setStoryImg}
+            />
+          }
+        />
       </Routes>
 
+      {/* FOOTER + UI */}
       {!isAdmin && (
         <>
-          <Footer />
+          <Footer logoImg={logoImg} />
+
           <CartSidebar
             cart={cart}
             total={total}
