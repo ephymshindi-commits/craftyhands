@@ -4,14 +4,24 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import config from '../config';
 import styles from './Navbar.module.css';
 
-export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onToggleDark, logoImg }) {
+// ── Hardcoded logo — always shows ────────────────────────────
+const DEFAULT_LOGO = 'https://res.cloudinary.com/decw2jxsq/image/upload/v1780316264/craftyhands/c9jbwrdjjm78nexp5c4h.jpg';
+
+export default function Navbar({
+  cartCount, onCartOpen,
+  wishlistCount, dark, onToggleDark,
+  logoImg,   // from Supabase (overrides default if set)
+}) {
   const [scrolled,    setScrolled]    = useState(false);
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const searchRef = useRef();
+  const navigate     = useNavigate();
+  const searchRef    = useRef();
+
+  // Use Supabase logo if admin uploaded one, otherwise use hardcoded default
+  const displayLogo = logoImg || DEFAULT_LOGO;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -19,10 +29,11 @@ export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onT
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close menu on route change
-  useEffect(() => { setMenuOpen(false); setSearchOpen(false); }, [pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
 
-  // Lock body scroll when menu open
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -42,39 +53,40 @@ export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onT
   }
 
   const navLinks = [
-    ['/', 'Home'],
-    ['/shop', 'Shop'],
+    ['/',         'Home'],
+    ['/shop',     'Shop'],
     ['/wishlist', 'Wishlist'],
-    ['/about', 'About'],
-    ['/contact', 'Contact'],
+    ['/about',    'About'],
+    ['/contact',  'Contact'],
   ];
 
   return (
     <>
       <nav className={`${styles.nav} ${scrolled ? styles.scrolled : ''}`}>
+
         {/* ── LOGO ── */}
         <Link to="/" className={styles.logoWrap}>
-          {logoImg
-            ? <img src={logoImg} alt={config.brand.name} className={styles.logoImg}/>
-            : null
-          }
-          {!logoImg && (
-            <span className={styles.logoText}>
-              {config.brand.name.split(' ')[0]} <span>{config.brand.name.split(' ')[1]}</span>
-            </span>
-          )}
-          {logoImg && (
-            <span className={styles.logoText} style={{fontSize:'1.1rem'}}>
-              {config.brand.name.split(' ')[0]} <span>{config.brand.name.split(' ')[1]}</span>
-            </span>
-          )}
+          <img
+            src={displayLogo}
+            alt={config.brand.name}
+            className={styles.logoImg}
+          />
+          <span className={styles.logoText}>
+            {config.brand.name.split(' ')[0]}{' '}
+            <span>{config.brand.name.split(' ')[1]}</span>
+          </span>
         </Link>
 
         {/* ── DESKTOP LINKS ── */}
         <ul className={styles.links}>
           {navLinks.map(([to, label]) => (
             <li key={to}>
-              <Link to={to} className={pathname === to ? styles.active : ''}>{label}</Link>
+              <Link
+                to={to}
+                className={pathname === to ? styles.active : ''}
+              >
+                {label}
+              </Link>
             </li>
           ))}
         </ul>
@@ -82,8 +94,10 @@ export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onT
         {/* ── SEARCH OVERLAY ── */}
         {searchOpen && (
           <form className={styles.searchBar} onSubmit={handleSearch}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
               ref={searchRef}
@@ -92,48 +106,84 @@ export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onT
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <button type="button" className={styles.closeSearch} onClick={() => setSearchOpen(false)}>✕</button>
+            <button
+              type="button"
+              className={styles.closeSearch}
+              onClick={() => setSearchOpen(false)}
+            >✕</button>
           </form>
         )}
 
-        {/* ── ACTIONS ── */}
+        {/* ── ACTION ICONS ── */}
         <div className={styles.actions}>
-          <button className={styles.iconBtn} onClick={() => setSearchOpen(s => !s)} aria-label="Search">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          {/* Search */}
+          <button
+            className={styles.iconBtn}
+            onClick={() => setSearchOpen(s => !s)}
+            aria-label="Search"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
 
-          <button className={styles.iconBtn} onClick={onToggleDark} aria-label="Toggle dark mode">
+          {/* Dark mode */}
+          <button
+            className={styles.iconBtn}
+            onClick={onToggleDark}
+            aria-label="Toggle dark mode"
+          >
             {dark ? (
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
                 <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
             ) : (
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
                 <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
               </svg>
             )}
           </button>
 
+          {/* Wishlist */}
           <Link to="/wishlist" className={styles.iconBtn} aria-label="Wishlist">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8">
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
-            {wishlistCount > 0 && <span className={styles.badge} style={{background:'#e05252'}}>{wishlistCount}</span>}
+            {wishlistCount > 0 && (
+              <span className={styles.badge} style={{ background: '#e05252' }}>
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
-          <button className={styles.iconBtn} onClick={onCartOpen} aria-label="Cart">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          {/* Cart */}
+          <button
+            className={styles.iconBtn}
+            onClick={onCartOpen}
+            aria-label="Cart"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
             </svg>
-            {cartCount > 0 && <span className={styles.badge}>{cartCount}</span>}
+            {cartCount > 0 && (
+              <span className={styles.badge}>{cartCount}</span>
+            )}
           </button>
 
           {/* Burger — mobile only */}
@@ -155,8 +205,18 @@ export default function Navbar({ cartCount, onCartOpen, wishlistCount, dark, onT
           </Link>
         ))}
         <div className={styles.mobileSocials}>
-          <a href={`https://instagram.com/${config.contact.instagram}`} target="_blank" rel="noreferrer">Instagram</a>
-          <a href={`https://wa.me/${config.contact.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp</a>
+          <a
+            href={`https://instagram.com/${config.contact.instagram}`}
+            target="_blank" rel="noreferrer"
+          >
+            Instagram
+          </a>
+          <a
+            href={`https://wa.me/${config.contact.whatsapp}`}
+            target="_blank" rel="noreferrer"
+          >
+            WhatsApp
+          </a>
         </div>
       </div>
     </>
