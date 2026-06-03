@@ -103,7 +103,7 @@ export default function CartSidebar({ cart, total, isOpen, onClose, onRemove }) 
               </div>
               <div className={styles.policyRow}>
                 <span>🛡️</span>
-                <span>Lost in transit? <strong>Full replacement or refund</strong></span>
+                <span>Lost in transit? <strong>No replacement or refund</strong></span>
               </div>
             </div>
 

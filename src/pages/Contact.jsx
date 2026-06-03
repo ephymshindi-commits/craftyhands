@@ -50,7 +50,7 @@ export default function Contact() {
           <div className={styles.orderingCard}>
             <div className={styles.orderingIcon}>🛡️</div>
             <h3>Lost in Transit</h3>
-            <p>In the rare event your order is <strong>lost during delivery</strong>, we will no replacement or any fully refund your order. Your purchase is protected.</p>
+            <p>In the rare event your order is <strong>lost during delivery</strong>, there will be no replacement or any fully refund on order. Your purchase is protected.</p>
           </div>
 
         </div>
